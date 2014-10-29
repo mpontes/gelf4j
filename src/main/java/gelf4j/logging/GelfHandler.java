@@ -139,8 +139,14 @@ public class GelfHandler
 
   private GelfMessage makeMessage( final LogRecord record )
   {
-    final String renderedMessage = record.getMessage();
+    String renderedMessage = record.getMessage();
     final SyslogLevel level = levelToSyslogLevel( record.getLevel() );
+    final Throwable throwable = record.getThrown();
+
+    if( renderedMessage == null && throwable != null)
+    {
+      renderedMessage = throwable.getMessage() != null ? throwable.getMessage() : "Exception: " + throwable.getClass().getCanonicalName();
+    }
     final GelfMessage message = _connection.newMessage( level, renderedMessage, record.getMillis() );
 
     for( final Map.Entry<String, String> entry : _config.getAdditionalFields().entrySet() )
@@ -165,7 +171,6 @@ public class GelfHandler
       }
       else if( GelfTargetConfig.FIELD_EXCEPTION.equals( fieldName ) )
       {
-        final Throwable throwable = record.getThrown();
         if( null != throwable )
         {
           GelfMessageUtil.setValue( message, key, GelfMessageUtil.extractStacktrace( throwable ) );
